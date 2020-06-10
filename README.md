@@ -28,12 +28,15 @@ The following things are in the pipeline:
 
 1) First things first, you'll need a copy of the target game, KotOR or TSL. You'll also need to download the Unity game engine.
 2) Clone or download the repository.
-3) Create a new Unity project and point it to the KotOR-Unity directory you just downloaded.
+3) Open the KotOR-Unity directory you just downloaded as a Unity project.
 4) Inside Unity, load the sample scene from Assets -> Scenes -> SampleScene
 5) The GameManager component is the entry point for loading everything, you'll need to change the Kotor Dir property to match the root of your kotor installation, and the Target Game property to either KotOR or TSL.
 6) Enter the name of the Entry Module you wish to load, module names can be found in {KotOR Directory}/Modules.
-7) Hit play, you should see the desired module load in the scene.
-8) In order to move through the scene you'll need a player controller, you can use one supplied in Assets -> Resources -> PlayerControllers, or one of your own, just so long as it is tagged as 'Player'.
+7) Hit play, you should be able to see the desired module load in the scene and move around with a basic 3rd person controller.
+
+## VR Support
+
+VR is working with the oculus rift, future releases will try to generalise this to any headset. In order to run in VR mode, just drag and drop the OVRPlayerController from Assets -> Resources -> PlayerControllers into the scene and make sure to remove any other player controllers.
 
 ## Contributing
 
