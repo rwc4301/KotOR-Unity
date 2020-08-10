@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace KotORVR
 {
-	public class GFFObject
+	public class GFFStruct
 	{
 		public enum FieldType
 		{
@@ -67,14 +67,14 @@ namespace KotORVR
 		public object Value { get; private set; }
 		public uint StructID { get; private set; }
 
-		public GFFObject(string label, FieldType type, object value)
+		public GFFStruct(string label, FieldType type, object value)
 		{
 			Label = label;
 			Type = type;
 			Value = value;
 		}
 
-		public GFFObject(string label, FieldType type, object value, uint structID)
+		public GFFStruct(string label, FieldType type, object value, uint structID)
 		{
 			Label = label;
 			Type = type;
@@ -82,7 +82,7 @@ namespace KotORVR
 			StructID = structID;
 		}
 
-		public GFFObject(string json)
+		public GFFStruct(string json)
 		{
 			JSON.FillObject(this, json);
 		}
@@ -117,10 +117,10 @@ namespace KotORVR
 		}
 
 		//if this field is of the type 'struct', cast the data value as a dictionary and retrieve the requested child field by key
-		public GFFObject this[string key] {
+		public GFFStruct this[string key] {
 			get {
 				if (Type == FieldType.Struct) {
-					return ((Dictionary<string, GFFObject>)Value)[key];
+					return ((Dictionary<string, GFFStruct>)Value)[key];
 				}
 				else {
 					throw new System.Exception(string.Format("Tried to retrieve a child value from a GFF field which is not a struct. Field has label {0} and type {1}.", Label, Type));
@@ -128,12 +128,12 @@ namespace KotORVR
 			}
 			set {
 				if (Type == FieldType.Struct) {
-					GFFObject old;
-					if (((Dictionary<string, GFFObject>)Value).TryGetValue(key, out old)) {
-						((Dictionary<string, GFFObject>)Value)[key] = value;
+					GFFStruct old;
+					if (((Dictionary<string, GFFStruct>)Value).TryGetValue(key, out old)) {
+						((Dictionary<string, GFFStruct>)Value)[key] = value;
 					}
 					else {
-						((Dictionary<string, GFFObject>)Value).Add(key, value);
+						((Dictionary<string, GFFStruct>)Value).Add(key, value);
 					}
 				}
 				else {
@@ -143,10 +143,10 @@ namespace KotORVR
 		}
 
 		//if this field is of the type 'list', cast the data value as an array of fields and retrieve the requested child field by index
-		public GFFObject this[int index] {
+		public GFFStruct this[int index] {
 			get {
 				if (Type == FieldType.List) {
-					return ((GFFObject[])Value)[index];
+					return ((GFFStruct[])Value)[index];
 				}
 				else {
 					throw new System.Exception(string.Format("Tried to retrieve a child struct from a GFF field which is not a list. Field has label {0} and type {1}.", Label, Type));
@@ -154,7 +154,7 @@ namespace KotORVR
 			}
 			set {
 				if (Type == FieldType.Struct) {
-					((GFFObject[])Value)[index] = value;
+					((GFFStruct[])Value)[index] = value;
 				}
 				else {
 					throw new System.Exception(string.Format("Tried to set a child struct on a GFF field which is not a list. Field has label {0} and type {1}.", Label, Type));
@@ -171,6 +171,11 @@ namespace KotORVR
 				Debug.LogError(string.Format("Failed to cast the specified GFF value, label was {0} and the type is {1}", Label, Value.GetType()));
 				return default(T);
 			}
+		}
+
+		public void SetValue<T>(T value)
+		{
+			Value = value;
 		}
 	}
 }

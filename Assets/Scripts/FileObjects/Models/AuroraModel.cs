@@ -42,7 +42,6 @@ namespace KotORVR
 			public Node[] children;
 			public Node super;
 			public Curve[] curves;
-
 		}
 
 		public class MeshNode : Node
@@ -57,6 +56,9 @@ namespace KotORVR
 			public uint nAnimateUV, mdxDataSize, mdxDataBitmap;
 			public float fUVDirX, fUVDirY, fUVJitter, fUVJitterSpeed;
 
+			public uint mdxNodeDataOffset;
+			public uint vertexCoordsOffset;
+
 			public int[] Triangles { get; set; }
 			public Vector3[] Vertices { get; set; }
 			public Vector3[] Normals { get; set; }
@@ -65,6 +67,10 @@ namespace KotORVR
 
 			public Mesh CreateUnityMesh()
 			{
+				if (this is SaberNode) {
+					return null;
+				}
+
 				Mesh mesh = new Mesh();
 
 				mesh.SetVertices(new List<Vector3>(Vertices));
@@ -81,6 +87,11 @@ namespace KotORVR
 			}
 		}
 
+		public class SkinnedMeshNode : MeshNode
+		{
+			public BoneWeight[] Weights;
+		}
+
 		public class LightNode : Node
 		{
 			public float flareRadius;
@@ -88,6 +99,11 @@ namespace KotORVR
 			public Vector3 flareSize, flarePos, flareColorShifts;
 			public byte[] pointerArray;
 			public uint priority, ambientFlag, dynamicFlag, affectDynamicFlag, shadowFlag, generateFlareFlag, fadingLightFlag;
+		}
+
+		public class SaberNode : MeshNode
+		{
+
 		}
 
 		private const int HEADER_SIZE = 12, GEOM_HEADER_SIZE = 80, MODEL_HEADER_SIZE = 56;
@@ -292,9 +308,17 @@ namespace KotORVR
 			Node.Type nodeType = (Node.Type)BitConverter.ToUInt16(buffer, 0);
 
 			Node node;
-			if ((nodeType & Node.Type.Mesh) == Node.Type.Mesh) {
+
+			if ((nodeType & Node.Type.Saber) == Node.Type.Saber) {
+				node = new SaberNode();
+			}
+			else if ((nodeType & Node.Type.Skin) == Node.Type.Skin) {
+				node = new SkinnedMeshNode();
+			}
+			else if ((nodeType & Node.Type.Mesh) == Node.Type.Mesh) {
 				node = new MeshNode();
-			} else {
+			}
+			else {
 				node = new Node();
 			}
 
@@ -357,7 +381,7 @@ namespace KotORVR
 			mdlStream.Position = pos;
 
 			if ((node.nodeType & Node.Type.Light) == Node.Type.Light) {
-				//((LightNode)node, mdlStream);
+				//ReadLight((LightNode)node, mdlStream);
 			}
 			if ((node.nodeType & Node.Type.Emitter) == Node.Type.Emitter) {
 
@@ -369,6 +393,9 @@ namespace KotORVR
 				ReadMesh((MeshNode)node, mdlStream, mdxStream);
 			}
 			if ((node.nodeType & Node.Type.Skin) == Node.Type.Skin) {
+				//ReadSkin((SkinnedMeshNode)node, mdlStream, mdxStream);
+			}
+			if ((node.nodeType & Node.Type.Anim) == Node.Type.Anim) {
 
 			}
 			if ((node.nodeType & Node.Type.Dangly) == Node.Type.Dangly) {
@@ -377,7 +404,8 @@ namespace KotORVR
 			if ((node.nodeType & Node.Type.AABB) == Node.Type.AABB) {
 
 			}
-			if ((node.nodeType & Node.Type.Anim) == Node.Type.Anim) {
+			if ((node.nodeType & Node.Type.Saber) == Node.Type.Saber) {
+				ReadSaber((SaberNode)node, mdlStream);
 			}
 
 			node.children = new Node[childArrayCount];
@@ -395,8 +423,9 @@ namespace KotORVR
 			byte[] buffer = new byte[88];
 			mdlStream.Read(buffer, 0, 88);
 
-			uint faceArrayOffset = BitConverter.ToUInt32(buffer, 8);
-			uint faceCount = BitConverter.ToUInt32(buffer, 12);
+			uint facesOffset = BitConverter.ToUInt32(buffer, 8);
+			uint facesCount = BitConverter.ToUInt32(buffer, 12);
+			uint facesCapacity = BitConverter.ToUInt32(buffer, 16);
 
 			Vector3 minBounds = new Vector3(BitConverter.ToSingle(buffer, 20), BitConverter.ToSingle(buffer, 24), BitConverter.ToSingle(buffer, 28));
 			Vector3 maxBounds = new Vector3(BitConverter.ToSingle(buffer, 32), BitConverter.ToSingle(buffer, 36), BitConverter.ToSingle(buffer, 40));
@@ -410,8 +439,8 @@ namespace KotORVR
 			buffer = new byte[88];
 			mdlStream.Read(buffer, 0, 88);
 
-			mesh.texMap1 = Encoding.UTF8.GetString(buffer, 0, 32).Split('\0')[0];	//texture filename
-			mesh.texMap2 = Encoding.UTF8.GetString(buffer, 32, 32).Split('\0')[0];	//lightmap filename
+			mesh.texMap1 = Encoding.UTF8.GetString(buffer, 0, 32).Split('\0')[0];   //texture filename
+			mesh.texMap2 = Encoding.UTF8.GetString(buffer, 32, 32).Split('\0')[0];  //lightmap filename
 			mesh.texMap3 = Encoding.UTF8.GetString(buffer, 64, 12).Split('\0')[0];
 			mesh.texMap4 = Encoding.UTF8.GetString(buffer, 76, 12).Split('\0')[0];
 
@@ -419,33 +448,40 @@ namespace KotORVR
 			mdlStream.Read(buffer, 0, 132);
 
 			uint indexArrayOffset = BitConverter.ToUInt32(buffer, 0);
-			uint indexCount = BitConverter.ToUInt32(buffer, 4);
-			uint vertexIndicesArrayOffset = BitConverter.ToUInt32(buffer, 12);
-			uint vertexIndicesCount = BitConverter.ToUInt32(buffer, 16);
+			uint indexArrayCount = BitConverter.ToUInt32(buffer, 4);
+			uint indexArrayCapacity = BitConverter.ToUInt32(buffer, 8);
 
-			if (vertexIndicesCount != 1) {
-				Debug.LogWarning("Vertex Indices Offset != 1");
+			//the face data array contains a list of offsets to arrays which contain face data for this mesh, should never be more than one
+			uint faceDataOffsetsOffset = BitConverter.ToUInt32(buffer, 12);
+			uint faceDataOffsetsCount = BitConverter.ToUInt32(buffer, 16);
+			uint faceDataOffsetsCapacity = BitConverter.ToUInt32(buffer, 20);
+
+			//warn if there's more than one list of face data
+			if (faceDataOffsetsCount > 1) {
+				Debug.LogWarning("faceDataOffsetsCount > 1, this mesh seems to have multiple face arrays.");
 			}
 
+			//regardless, we'll go to the start of the face data array and select the first offset, assuming that the first offset in the array points to the face data we want
+			uint[] faceDataOffsets = new uint[faceDataOffsetsCount];
+			
 			long pos = mdlStream.Position;
-			mdlStream.Position = modelDataOffset + vertexIndicesArrayOffset;
-			mdlStream.Read(buffer, 12, 4);
+			mdlStream.Position = modelDataOffset + faceDataOffsetsOffset;
+			mdlStream.Read(buffer, 0, 4 * (int)faceDataOffsetsCount);
 			mdlStream.Position = pos;
 
-			uint vertexOffset = BitConverter.ToUInt32(buffer, 12);
-
-			uint invertedArrayOffset = BitConverter.ToUInt32(buffer, 24);
-			uint invertedCount = BitConverter.ToUInt32(buffer, 28);
+			for (int i = 0; i < faceDataOffsetsCount; i++) {
+				faceDataOffsets[i] = BitConverter.ToUInt32(buffer, i * 4);
+			}
 
 			mesh.saberBytes = new byte[] { buffer[48], buffer[49], buffer[50], buffer[51], buffer[52], buffer[53], buffer[54], buffer[55] };
-			
+
 			mesh.nAnimateUV = BitConverter.ToUInt32(buffer, 56);
 			mesh.fUVDirX = BitConverter.ToSingle(buffer, 60);
 			mesh.fUVDirY = BitConverter.ToSingle(buffer, 64);
 			mesh.fUVJitter = BitConverter.ToSingle(buffer, 68);
 			mesh.fUVJitterSpeed = BitConverter.ToSingle(buffer, 72);
 
-			uint mdxDataSize = BitConverter.ToUInt32(buffer, 76);	//standard 24 bytes (4x6) for vertices and normals, plus 8 bytes per uv map
+			uint mdxDataSize = BitConverter.ToUInt32(buffer, 76);   //standard 24 bytes (4x6) for vertices and normals, plus 8 bytes per uv map
 			uint mdxDataBitmap = BitConverter.ToUInt32(buffer, 80);
 			uint mdxVertexVertexOffset = BitConverter.ToUInt32(buffer, 84);
 			uint mdxVertexNormalsOffset = BitConverter.ToUInt32(buffer, 88);
@@ -465,7 +501,7 @@ namespace KotORVR
 				BitConverter.ToInt32(buffer, 124),
 			};
 
-			ushort vertexCount2 = BitConverter.ToUInt16(buffer, 128);
+			ushort vertexCount = BitConverter.ToUInt16(buffer, 128);
 			ushort textureCount = BitConverter.ToUInt16(buffer, 130);
 
 			int hasLightmap = mdlStream.ReadByte();
@@ -491,25 +527,32 @@ namespace KotORVR
 			mdlStream.Read(buffer, 0, 18);
 
 			float totalArea = BitConverter.ToSingle(buffer, 2);
-			uint mdxNodeDataOffset = BitConverter.ToUInt32(buffer, 10);
-			uint vertexCoordinatesOffset = BitConverter.ToUInt32(buffer, 14);
+			mesh.mdxNodeDataOffset = BitConverter.ToUInt32(buffer, 10);
+			mesh.vertexCoordsOffset = BitConverter.ToUInt32(buffer, 14);
 
-			int[] faces = new int[faceCount * 3];	//3 vertices per face
-			Vector3[] vertices = new Vector3[vertexCount2];
-			Vector3[] normals = new Vector3[vertexCount2];
+			mesh.Triangles = new int[facesCount * 3];	//3 vertices per face
+			mesh.Vertices = new Vector3[vertexCount];
+			mesh.Normals = new Vector3[vertexCount];
+
 			Vector2[][] uvs = new Vector2[4][];
 			for (int t = 0; t < textureCount; t++) {
-				uvs[t] = new Vector2[vertexCount2];
+				uvs[t] = new Vector2[vertexCount];
 			}
 
-			buffer = new byte[mdxDataSize * vertexCount2];
-			mdxStream.Position = mdxNodeDataOffset;
-			mdxStream.Read(buffer, 0, (int)mdxDataSize * vertexCount2);
+			if (faceDataOffsetsCount == 0 || vertexCount == 0 || facesCount == 0) {
+				return mesh;
+			}
 
-			for (int i = 0, offset = 0; i < vertexCount2; i++, offset += (int)mdxDataSize) {
+			long endPos = mdlStream.Position;
+
+			buffer = new byte[mdxDataSize * vertexCount];
+			mdxStream.Position = mesh.mdxNodeDataOffset;
+			mdxStream.Read(buffer, 0, (int)mdxDataSize * vertexCount);
+
+			for (int i = 0, offset = 0; i < vertexCount; i++, offset += (int)mdxDataSize) {
 				//flip the y and z co-ordinates
-				vertices[i] = new Vector3(BitConverter.ToSingle(buffer, offset + 0), BitConverter.ToSingle(buffer, offset + 8), BitConverter.ToSingle(buffer, offset + 4));
-				normals[i] = new Vector3(BitConverter.ToSingle(buffer, offset + 12), BitConverter.ToSingle(buffer, offset + 20), BitConverter.ToSingle(buffer, offset + 16)) * -1;
+				mesh.Vertices[i] = new Vector3(BitConverter.ToSingle(buffer, offset + 0), BitConverter.ToSingle(buffer, offset + 8), BitConverter.ToSingle(buffer, offset + 4));
+				mesh.Normals[i] = new Vector3(BitConverter.ToSingle(buffer, offset + 12), BitConverter.ToSingle(buffer, offset + 20), BitConverter.ToSingle(buffer, offset + 16)) * -1;
 
 				//read the uvs for each of the four (potential) texture maps, 
 				for (int t = 0, uvOffset = 24; t < textureCount; t++, uvOffset += 8) {
@@ -517,22 +560,18 @@ namespace KotORVR
 				}
 			}
 
-			buffer = new byte[6 * faceCount];
-			mdlStream.Position = modelDataOffset + vertexOffset;
-			mdlStream.Read(buffer, 0, 6 * (int)faceCount);
+			buffer = new byte[6 * facesCount];	//6 bytes (3 shorts) per face
+			mdlStream.Position = modelDataOffset + faceDataOffsets[0];
+			mdlStream.Read(buffer, 0, 6 * (int)facesCount);
 
 			if (textureCount != 0) {
-				for (int i = 0; i < faceCount; i++) {
+				for (int i = 0; i < facesCount; i++) {
 					//flip faces 1 and 2 to keep the normals pointing out
-					faces[(i * 3) + 0] = BitConverter.ToUInt16(buffer, (i * 6) + 0);
-					faces[(i * 3) + 1] = BitConverter.ToUInt16(buffer, (i * 6) + 4);
-					faces[(i * 3) + 2] = BitConverter.ToUInt16(buffer, (i * 6) + 2);
+					mesh.Triangles[(i * 3) + 0] = BitConverter.ToUInt16(buffer, (i * 6) + 0);
+					mesh.Triangles[(i * 3) + 1] = BitConverter.ToUInt16(buffer, (i * 6) + 4);
+					mesh.Triangles[(i * 3) + 2] = BitConverter.ToUInt16(buffer, (i * 6) + 2);
 				}
 			}
-
-			mesh.Triangles = faces;
-			mesh.Vertices = vertices;
-			mesh.Normals = normals;
 			
 			if (uvs[0] != null) {
 				mesh.DiffuseUVs = uvs[0];
@@ -541,7 +580,103 @@ namespace KotORVR
 				mesh.LightmapUVs = uvs[1];
 			}
 
+			mdlStream.Position = endPos;
+
 			return mesh;
+		}
+
+		private void ReadSkin(SkinnedMeshNode skin, Stream mdlStream, Stream mdxStream)
+		{
+			byte[] buffer = new byte[110];
+			mdlStream.Read(buffer, 0, 110);
+
+			uint weightsOffset = BitConverter.ToUInt32(buffer, 8);
+			uint weightsCount = BitConverter.ToUInt32(buffer, 12);
+			uint weightsCapacity = BitConverter.ToUInt32(buffer, 16);
+
+			uint mdxVertexStructOffsetBoneWeights = BitConverter.ToUInt32(buffer, 20);
+			uint mdxVertexStructOffsetBoneMappingID = BitConverter.ToUInt32(buffer, 24);
+			
+			uint boneMappingOffset = BitConverter.ToUInt32(buffer, 28);
+			uint boneMappingCount = BitConverter.ToUInt32(buffer, 32);
+			
+			uint boneQuatsOffset = BitConverter.ToUInt32(buffer, 36);
+			uint boneQuatsCount = BitConverter.ToUInt32(buffer, 40);
+			uint boneQuatsCapacity = BitConverter.ToUInt32(buffer, 44);
+
+			uint boneVertsOffset = BitConverter.ToUInt32(buffer, 48);
+			uint boneVertsCount = BitConverter.ToUInt32(buffer, 52);
+			uint boneVertsCapacity = BitConverter.ToUInt32(buffer, 56);
+
+			uint boneConstsOffset = BitConverter.ToUInt32(buffer, 60);
+			uint boneConstsCount = BitConverter.ToUInt32(buffer, 64);
+			uint boneConstsCapacity = BitConverter.ToUInt32(buffer, 68);
+
+			short[] boneParts = new short[16];
+			for (int i = 0; i < boneParts.Length; i++) {
+				boneParts[i] = BitConverter.ToInt16(buffer, 72 + (i * 2));
+			}
+
+			int spare = BitConverter.ToInt32(buffer, 106);
+
+			skin.Weights = new BoneWeight[skin.Vertices.Length];
+
+			for (int i = 0; i < skin.Vertices.Length; i++) {
+				mdxStream.Position = skin.mdxNodeDataOffset + (i * skin.mdxDataSize) + mdxVertexStructOffsetBoneWeights;
+				mdxStream.Read(buffer, 0, 32);
+
+				skin.Weights[i] = new BoneWeight {
+					weight0 = BitConverter.ToSingle(buffer, 0),
+					weight1 = BitConverter.ToSingle(buffer, 4),
+					weight2 = BitConverter.ToSingle(buffer, 8),
+					weight3 = BitConverter.ToSingle(buffer, 12),
+					boneIndex0 = (int)BitConverter.ToSingle(buffer, 16),
+					boneIndex1 = (int)BitConverter.ToSingle(buffer, 20),
+					boneIndex2 = (int)BitConverter.ToSingle(buffer, 24),
+					boneIndex3 = (int)BitConverter.ToSingle(buffer, 28),
+				};
+
+				mdlStream.Position = modelDataOffset + boneMappingOffset;
+
+				buffer = new byte[boneMappingCount * 4];
+				mdlStream.Read(buffer, 0, (int)boneMappingCount * 4);
+
+				float[] boneMapping = new float[boneMappingCount];
+				for (int j = 0; j < boneMappingCount; j++) {
+					boneMapping[j] = BitConverter.ToSingle(buffer, j * 4);
+				}
+
+				mdlStream.Position = modelDataOffset + boneQuatsOffset;
+
+				buffer = new byte[boneQuatsCount * 16];
+				mdlStream.Read(buffer, 0, (int)boneQuatsCount * 16);
+
+				Quaternion[] boneQuats = new Quaternion[boneQuatsCount];
+				for (int j = 0, offset = 0; j < boneQuatsCount; j++, offset += 16) {
+					boneQuats[j] = new Quaternion(BitConverter.ToSingle(buffer, offset + 4), BitConverter.ToSingle(buffer, offset + 8), BitConverter.ToSingle(buffer, offset + 12), BitConverter.ToSingle(buffer, offset + 0));
+					boneQuats[j].Normalize();
+				}
+
+				mdlStream.Position = modelDataOffset + boneVertsOffset;
+
+				buffer = new byte[boneVertsCount * 12];
+				mdlStream.Read(buffer, 0, (int)boneVertsCount * 12);
+
+				Vector3[] boneVerts = new Vector3[boneVertsCount];
+				for (int j = 0, offset = 0; j < boneQuatsCount; j++, offset += 12) {
+					boneVerts[j] = new Vector3(BitConverter.ToSingle(buffer, offset + 0), BitConverter.ToSingle(buffer, offset + 8), BitConverter.ToSingle(buffer, offset + 4));
+				}
+
+				mdlStream.Position = modelDataOffset + boneConstsOffset;
+
+				buffer = new byte[boneConstsCount * 12];
+				mdlStream.Read(buffer, 0, (int)boneConstsCount * 12);
+
+				ushort[] boneConsts = new ushort[boneConstsCount];
+				for (int j = 0; j < boneConstsCount; j++) {
+					boneConsts[j] = BitConverter.ToUInt16(buffer, j * 2);
+				}
+			}
 		}
 
 		private Animation ReadAnimation(Stream mdlStream, Stream mdxStream)
@@ -623,6 +758,29 @@ namespace KotORVR
 			light.fadingLightFlag = BitConverter.ToUInt32(buffer, 88);
 
 			return light;
+		}
+
+		private SaberNode ReadSaber(SaberNode saber, Stream mdlStream)
+		{
+			byte[] buffer = new byte[12];
+			mdlStream.Read(buffer, 0, 12);
+
+			uint offsetVertsCoords2 = BitConverter.ToUInt32(buffer, 0);
+			uint offsetTexCoords = BitConverter.ToUInt32(buffer, 4);
+			uint offsetSaberData = BitConverter.ToUInt32(buffer, 8);
+
+			mdlStream.Position = modelDataOffset + saber.vertexCoordsOffset;
+
+			buffer = new byte[saber.Vertices.Length * 12];
+			mdlStream.Read(buffer, 0, buffer.Length);
+
+			for (int i = 0; i < saber.Vertices.Length; i++) {
+				saber.Vertices[i] = new Vector3(BitConverter.ToSingle(buffer, 0), BitConverter.ToSingle(buffer, 8), BitConverter.ToSingle(buffer, 4));
+			}
+
+
+
+			return saber;
 		}
 
 		private Node.Curve[] ReadAnimationCurves(Stream mdlStream, uint keyCount, uint keyOffset, uint dataCount, uint dataOffset)

@@ -20,7 +20,7 @@ namespace KotORVR
 
 			byte[] buffer;
 
-			using (FileStream stream = File.Open(filePath, FileMode.Open)) {
+			using (FileStream stream = File.Open(filePath, FileMode.Open, FileAccess.Read)) {
 				//Read header
 				buffer = new byte[HEADER_SIZE];
 				stream.Read(buffer, 0, HEADER_SIZE);

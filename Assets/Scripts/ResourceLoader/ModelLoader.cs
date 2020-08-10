@@ -49,7 +49,7 @@ namespace KotORVR
 				return new GameObject(resref);
 			}
 
-			AuroraModel auroraModel = new AuroraModel(mdl, mdx);
+			AuroraModel auroraModel = new AuroraModel(mdl, mdx, targetGame);
 
 			GameObject model = CreateObject(auroraModel.rootNode, null);
 			Animation animComponent = model.AddComponent<Animation>();

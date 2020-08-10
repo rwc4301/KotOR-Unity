@@ -7,15 +7,15 @@ namespace KotORVR
 	{
 		private bool isOpen;
 
-		public static Placeable Create(GFFObject gff)
+		public static Placeable Create(GFFStruct templateRoot)
 		{
 			GameObject gameObject;
 
 			//get the resource reference for this object, which we'll use as it's in-engine name
-			string name = gff["TemplateResRef"].GetValue<string>();
+			string name = templateRoot["TemplateResRef"].GetValue<string>();
 
 			//get the appearance row number in placeables.2da
-			int appearance = (int)gff["Appearance"].GetValue<uint>();
+			int appearance = (int)templateRoot["Appearance"].GetValue<uint>();
 
 			//get the model name for this appearance id
 			string modelRef = Resources.Load2DA("placeables")[appearance, "modelname"];
@@ -29,7 +29,7 @@ namespace KotORVR
 
 			//add the template component to the new object
 			Placeable placeable = gameObject.AddComponent<Placeable>();
-			placeable.template = gff;
+			placeable.templateRoot = templateRoot;
 
 			return placeable;
 		}

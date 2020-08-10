@@ -6,15 +6,15 @@ namespace KotORVR
 	{
 		private bool isOpen;
 
-		public static Door Create(GFFObject gff)
+		public static Door Create(GFFStruct templateRoot)
 		{
 			GameObject gameObject;
 
 			//get the resource reference for this object, which we'll use as it's in-engine name
-			string name = gff["TemplateResRef"].GetValue<string>();
+			string name = templateRoot["TemplateResRef"].GetValue<string>();
 
 			//get the appearance row number in genericdoors.2da
-			int appearance = gff["GenericType"].GetValue<byte>();
+			int appearance = templateRoot["GenericType"].GetValue<byte>();
 
 			//get the model name for this door id
 			string modelRef = Resources.Load2DA("genericdoors")[appearance, "modelname"];
@@ -25,7 +25,7 @@ namespace KotORVR
 
 			//add the template component to the new object
 			Door door = gameObject.AddComponent<Door>();
-			door.template = gff;
+			door.templateRoot = templateRoot;
 
 			return door;
 		}

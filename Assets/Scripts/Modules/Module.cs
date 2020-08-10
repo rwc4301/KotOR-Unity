@@ -7,7 +7,7 @@ namespace KotORVR
 	public class Module
 	{
 		private RIMObject rim, srim;
-		private GFFObject ifo, are, git;
+		private GFFStruct ifo, are, git;
 
 		public Vector3 entryPosition { get; private set; }
 		public Quaternion entryRotation { get; private set; }
@@ -33,13 +33,13 @@ namespace KotORVR
 			rim = new RIMObject(Resources.ModuleDirectory + "\\" + name + ".rim");
 			srim = new RIMObject(Resources.ModuleDirectory + "\\" + name + "_s.rim");
 
-			ifo = new GFFLoader(rim.GetResource("module", ResourceType.IFO)).GetObject();
+			ifo = new GFFLoader(rim.GetResource("module", ResourceType.IFO)).GetRoot();
 			string areaName = ifo["Mod_Entry_Area"].GetValue<string>();
 
 			entryPosition = new Vector3(ifo["Mod_Entry_X"].GetValue<float>(), ifo["Mod_Entry_Z"].GetValue<float>(), ifo["Mod_Entry_Y"].GetValue<float>());
 
-			are = new GFFLoader(rim.GetResource(areaName, ResourceType.ARE)).GetObject();
-			git = new GFFLoader(rim.GetResource(areaName, ResourceType.GIT)).GetObject();
+			are = new GFFLoader(rim.GetResource(areaName, ResourceType.ARE)).GetRoot();
+			git = new GFFLoader(rim.GetResource(areaName, ResourceType.GIT)).GetRoot();
 
 			Dictionary<string, Vector3> layout = Resources.LoadLayout(areaName);
 			foreach (var value in layout) {
@@ -57,7 +57,7 @@ namespace KotORVR
 
 		private void LoadCreatures()
 		{
-			GFFObject[] creatures = git["Creature List"].GetValue<GFFObject[]>();
+			GFFStruct[] creatures = git["Creature List"].GetValue<GFFStruct[]>();
 			Character character;
 			
 			foreach (var c in creatures) {
@@ -76,7 +76,7 @@ namespace KotORVR
 
 		private void LoadDoors()
 		{
-			GFFObject[] doors = git["Door List"].GetValue<GFFObject[]>();
+			GFFStruct[] doors = git["Door List"].GetValue<GFFStruct[]>();
 			Door door;
 
 			foreach (var d in doors) {
@@ -93,7 +93,7 @@ namespace KotORVR
 
 		private void LoadPlaceables()
 		{
-			GFFObject[] placeables = git["Placeable List"].GetValue<GFFObject[]>();
+			GFFStruct[] placeables = git["Placeable List"].GetValue<GFFStruct[]>();
 			Placeable placeable;
 
 			foreach (var p in placeables) {

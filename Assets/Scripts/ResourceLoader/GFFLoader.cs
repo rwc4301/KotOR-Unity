@@ -7,7 +7,7 @@ using UnityEngine;
 namespace KotORVR {
 	public class GFFLoader
 	{
-		private GFFObject TopStruct { get; set; }
+		private GFFStruct TopStruct { get; set; }
 
 		private const int DWORD_SIZE = 4, STRING_SIZE = 16, STRUCT_SIZE = 12;
 
@@ -51,10 +51,10 @@ namespace KotORVR {
 			licount = BitConverter.ToInt32(buffer, 52);
 
 			//read the top level struct, recursively reading the file
-			TopStruct = new GFFObject(null, GFFObject.FieldType.Struct, ReadStruct(0));
+			TopStruct = new GFFStruct(null, GFFStruct.FieldType.Struct, ReadStruct(0));
 		}
 
-		public GFFObject GetObject()
+		public GFFStruct GetRoot()
 		{
 			return TopStruct;
 		}
@@ -62,7 +62,7 @@ namespace KotORVR {
 		/// <summary>
 		/// Creates a new GFFStruct and reads all of the child fields associated with the struct at the given index in the GFF file
 		/// </summary>
-		private Dictionary<string, GFFObject> ReadStruct(uint index)
+		private Dictionary<string, GFFStruct> ReadStruct(uint index)
 		{
 			long pos = file.Position;
 			file.Position = structoffset + (STRUCT_SIZE * index);
@@ -100,9 +100,9 @@ namespace KotORVR {
 				}
 			}
 
-			Dictionary<string, GFFObject> fields = new Dictionary<string, GFFObject>((int)count);
+			Dictionary<string, GFFStruct> fields = new Dictionary<string, GFFStruct>((int)count);
 
-			GFFObject field;
+			GFFStruct field;
 			for (int i = 0; i < count; i++) {
 				field = ReadField(fieldIndices[i]);
 
@@ -112,7 +112,7 @@ namespace KotORVR {
 			return fields;
 		}
 
-		private GFFObject ReadField(uint index)
+		private GFFStruct ReadField(uint index)
 		{
 			//fields are returned as a tuple (label, data) for ease of parsing
 			long pos = file.Position;
@@ -125,51 +125,51 @@ namespace KotORVR {
 
 			file.Position = pos;
 
-			GFFObject.FieldType type = (GFFObject.FieldType)BitConverter.ToUInt32(buffer, 0);
+			GFFStruct.FieldType type = (GFFStruct.FieldType)BitConverter.ToUInt32(buffer, 0);
 			switch (type) {
-				case GFFObject.FieldType.Byte:
-					return new GFFObject(label, type, buffer[8]);
-				case GFFObject.FieldType.Char:
-					return new GFFObject(label, type, (char)buffer[8]);
-				case GFFObject.FieldType.Word:
-					return new GFFObject(label, type, BitConverter.ToUInt16(buffer, 8));
-				case GFFObject.FieldType.Short:
-					return new GFFObject(label, type, BitConverter.ToInt16(buffer, 8));
-				case GFFObject.FieldType.DWord:
-					return new GFFObject(label, type, BitConverter.ToUInt32(buffer, 8));
-				case GFFObject.FieldType.Int:
-					return new GFFObject(label, type, BitConverter.ToInt32(buffer, 8));
-				case GFFObject.FieldType.DWord64:
-					return new GFFObject(label, type, ReadUInt64(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.Int64:
-					return new GFFObject(label, type, ReadInt64(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.Float:
-					return new GFFObject(label, type, BitConverter.ToSingle(buffer, 8));
-				case GFFObject.FieldType.Double:
-					return new GFFObject(label, type, ReadDouble(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.CExoString:
-					return new GFFObject(label, type, ReadString(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.ResRef:
-					return new GFFObject(label, type, ReadResRef(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.CExoLocString:
-					return new GFFObject(label, type, ReadLocalizedString(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.Void:
-					return new GFFObject(label, type, ReadBytes(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.Struct:
-					return new GFFObject(label, type, ReadStruct(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.List:
-					return new GFFObject(label, type, ReadList(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.Quaternion:
-					return new GFFObject(label, type, ReadQuaternion(BitConverter.ToUInt32(buffer, 8)));
-				case GFFObject.FieldType.Vector3:
-					return new GFFObject(label, type, ReadVector3(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.Byte:
+					return new GFFStruct(label, type, buffer[8]);
+				case GFFStruct.FieldType.Char:
+					return new GFFStruct(label, type, (char)buffer[8]);
+				case GFFStruct.FieldType.Word:
+					return new GFFStruct(label, type, BitConverter.ToUInt16(buffer, 8));
+				case GFFStruct.FieldType.Short:
+					return new GFFStruct(label, type, BitConverter.ToInt16(buffer, 8));
+				case GFFStruct.FieldType.DWord:
+					return new GFFStruct(label, type, BitConverter.ToUInt32(buffer, 8));
+				case GFFStruct.FieldType.Int:
+					return new GFFStruct(label, type, BitConverter.ToInt32(buffer, 8));
+				case GFFStruct.FieldType.DWord64:
+					return new GFFStruct(label, type, ReadUInt64(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.Int64:
+					return new GFFStruct(label, type, ReadInt64(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.Float:
+					return new GFFStruct(label, type, BitConverter.ToSingle(buffer, 8));
+				case GFFStruct.FieldType.Double:
+					return new GFFStruct(label, type, ReadDouble(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.CExoString:
+					return new GFFStruct(label, type, ReadString(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.ResRef:
+					return new GFFStruct(label, type, ReadResRef(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.CExoLocString:
+					return new GFFStruct(label, type, ReadLocalizedString(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.Void:
+					return new GFFStruct(label, type, ReadBytes(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.Struct:
+					return new GFFStruct(label, type, ReadStruct(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.List:
+					return new GFFStruct(label, type, ReadList(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.Quaternion:
+					return new GFFStruct(label, type, ReadQuaternion(BitConverter.ToUInt32(buffer, 8)));
+				case GFFStruct.FieldType.Vector3:
+					return new GFFStruct(label, type, ReadVector3(BitConverter.ToUInt32(buffer, 8)));
 				default:
 					Debug.LogWarningFormat("{0} has unknown GFF type ID: {1}", label, type);
-					return new GFFObject(label, type, null);
+					return new GFFStruct(label, type, null);
 			}
 		}
 
-		private GFFObject[] ReadList(long offset)
+		private GFFStruct[] ReadList(long offset)
 		{
 			long pos = file.Position;
 			file.Position = lioffset + offset;
@@ -185,9 +185,9 @@ namespace KotORVR {
 
 			file.Position = pos;
 
-			GFFObject[] structs = new GFFObject[count];
+			GFFStruct[] structs = new GFFStruct[count];
 			for (int i = 0, j = 0; i < count; i++, j += DWORD_SIZE) {
-				structs[i] = new GFFObject(null, GFFObject.FieldType.Struct, ReadStruct(BitConverter.ToUInt32(buffer, j)));
+				structs[i] = new GFFStruct(null, GFFStruct.FieldType.Struct, ReadStruct(BitConverter.ToUInt32(buffer, j)));
 			}
 
 			return structs;
@@ -274,7 +274,7 @@ namespace KotORVR {
 			return Encoding.UTF8.GetString(buffer).ToLower();
 		}
 
-		private GFFObject.CExoLocString ReadLocalizedString(long offset)
+		private GFFStruct.CExoLocString ReadLocalizedString(long offset)
 		{
 			long pos = file.Position;
 			file.Position = fdoffset + offset;
@@ -289,7 +289,7 @@ namespace KotORVR {
 
 			uint stringref = BitConverter.ToUInt32(buffer, 0);  //index into the user's tlk file or 0xFFFFFFFF if the string doesn't reference the tlk file
 			uint count = BitConverter.ToUInt32(buffer, 4);      //how many substrings are there
-			var strings = new GFFObject.CExoLocString.SubString[count];
+			var strings = new GFFStruct.CExoLocString.SubString[count];
 
 			int stringLength;
 			for (int i = 0, j = 8; i < count; i++) {
@@ -306,7 +306,7 @@ namespace KotORVR {
 
 			file.Position = pos;
 
-			return new GFFObject.CExoLocString {
+			return new GFFStruct.CExoLocString {
 				stringref = stringref,
 				stringcount = count,
 				strings = strings

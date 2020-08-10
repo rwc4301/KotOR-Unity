@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -55,6 +56,8 @@ namespace KotORVR
 
 		private static Dictionary<string, _2DAObject> loaded2das;
 
+		private static Dictionary<(string, Type), object> resourceCache;
+
 		public static void Init(string rootDir, Game game)
 		{
 			targetGame = game;
@@ -64,6 +67,8 @@ namespace KotORVR
 
 			activeModules = new List<Module>();
 			loaded2das = new Dictionary<string, _2DAObject>();
+
+			//File.Open(@"‪D:\\Program Files\\Star Wars - KotOR2\\chitin.key", FileMode.Open);
 
 			keyObject = new KEYObject(rootDir + "\\chitin.key");
 
@@ -110,7 +115,7 @@ namespace KotORVR
 			activeModules.Add(module);
 		}
 
-		private static Texture2D LoadTexture2D(string resref)
+		public static Texture2D LoadTexture2D(string resref)
 		{
 			Stream stream;
 			if (null != (stream = GetStream(resref, ResourceType.TPC))) {

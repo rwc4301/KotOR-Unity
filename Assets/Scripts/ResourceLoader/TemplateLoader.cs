@@ -5,6 +5,16 @@ namespace KotORVR
 {
 	public static partial class Resources
 	{
+		public static GFFStruct LoadGFF(string resref, ResourceType restype)
+		{
+			Stream stream = GetStream(resref, restype);
+			if (stream == null) {
+				return null;
+			}
+
+			return new GFFLoader(stream).GetRoot();
+		}
+
 		public static Character LoadCharacter(string resref)
 		{
 			Stream stream = GetStream(resref, ResourceType.UTC);
@@ -13,7 +23,7 @@ namespace KotORVR
 				return null;
 			}
 
-			return Character.Create(new GFFLoader(stream).GetObject());
+			return Character.Create(new GFFLoader(stream).GetRoot());
 		}
 
 		public static Placeable LoadPlaceable(string resref)
@@ -24,7 +34,7 @@ namespace KotORVR
 				return null;
 			}
 
-			return Placeable.Create(new GFFLoader(stream).GetObject());
+			return Placeable.Create(new GFFLoader(stream).GetRoot());
 		}
 
 		public static Door LoadDoor(string resref)
@@ -35,18 +45,18 @@ namespace KotORVR
 				return null;
 			}
 
-			return Door.Create(new GFFLoader(stream).GetObject());
+			return Door.Create(new GFFLoader(stream).GetRoot());
 		}
 
 		public static Item LoadItem(string resref)
 		{
 			Stream stream = GetStream(resref, ResourceType.UTI);
 			if (stream == null) {
-				Debug.Log("Missing door template: " + resref);
+				Debug.Log("Missing item template: " + resref);
 				return null;
 			}
 
-			return Item.Create(new GFFLoader(stream).GetObject());
+			return Item.Create(new GFFLoader(stream).GetRoot());
 		}
 	}
 }
