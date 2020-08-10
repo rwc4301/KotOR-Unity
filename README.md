@@ -23,7 +23,11 @@ The following things are in the pipeline:
  - Loading files from MOD archives and the override folder
  
  Other things, notably scripting and combat, are not currently on the roadmap. If you'd like to see them implemented, you can help by contributing!
- 
+
+## Installing Dependencies
+
+The project uses [NAudio](https://github.com/naudio/NAudio) and [fastJSON](https://github.com/mgholam/fastJSON) to support audio playback and JSON serialization respectively. Either clone and import the source into your Unity project or build the dlls and import those.
+
 ## Getting Started
 
 1) First things first, you'll need a copy of the target game, KotOR or TSL. You'll also need to download the Unity game engine.
@@ -42,3 +46,6 @@ VR is working with the oculus rift, future releases will try to generalise this 
 
 Everyone is welcome to contribute, if you have something to add, submit a pull request or otherwise feel free to request a feature.
 
+## Licensing
+
+This project is released under the GNU GPLv3, meaning you are free to copy, distribute, and modify the source however you like, including for commercial use, so long as any derivative work is also released under the terms of the license. See LICENSE.md for further details.
