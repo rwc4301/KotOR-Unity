@@ -291,6 +291,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: OVRPlayerController
       objectReference: {fileID: 0}
+    - target: {fileID: 4072804488953580787, guid: 323292169443eef4d93ef4726822f0d5,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4072804488953876701, guid: 323292169443eef4d93ef4726822f0d5,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -743,7 +748,7 @@ PrefabInstance:
     - target: {fileID: 8274806706067158339, guid: 8d8df8d47a50d834194b584dd229da7e,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8d8df8d47a50d834194b584dd229da7e, type: 3}

@@ -78,6 +78,7 @@ namespace KotORUnity
     {
         private Vector2 scroll;
         private bool showJSON;
+        private string anim;
 
         protected PreviewRenderUtility previewRenderUtility;
         protected MeshFilter[] targetMeshFilters;
@@ -94,6 +95,12 @@ namespace KotORUnity
                 scroll = EditorGUILayout.BeginScrollView(scroll, GUILayout.Height(200));
                 EditorGUILayout.TextArea(t.GetJSON());
                 EditorGUILayout.EndScrollView();
+            }
+
+            anim = EditorGUILayout.TextField("Animation", anim);
+
+            if (GUILayout.Button("Play Current Animation")) {
+                ((TemplateObject)target).GetComponent<Animation>().Play(anim);
             }
         }
 
@@ -126,9 +133,11 @@ namespace KotORUnity
                 GUI.DrawTexture(r, render, ScaleMode.ScaleToFit);
 
                 //Draw the icon in the lower right corner
-                float len = r.height / 2;
-                r = new Rect(r.xMax - len, r.yMax - len, len, len);
-                GUI.DrawTexture(r, targetIconTexture, ScaleMode.ScaleToFit);
+                if (targetIconTexture) {
+                    float len = r.height / 2;
+                    r = new Rect(r.xMax - len, r.yMax - len, len, len);
+                    GUI.DrawTexture(r, targetIconTexture, ScaleMode.ScaleToFit);
+                }
             }
         }
 

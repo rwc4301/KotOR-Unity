@@ -1,5 +1,4 @@
-﻿using System.IO;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace KotORVR
 {
@@ -47,13 +46,19 @@ namespace KotORVR
 		public void Open()
 		{
 			isOpen = true;
-			gameObject.GetComponent<Animation>().Play("close2open");
+
+			if (animation["close2open"] != null) {
+				animation.Play("close2open");
+			}
 		}
 
 		public void Close()
 		{
 			isOpen = false;
-			gameObject.GetComponent<Animation>().Play("open2close");
+
+			if (animation["open2close"] != null) {
+				animation.Play("open2close");
+			}
 		}
 	}
 }

@@ -43,13 +43,13 @@ namespace KotORVR
 		public void Open()
 		{
 			isOpen = true;
-			gameObject.GetComponent<Animation>().Play("opening1");
+			animation.Play("opening1");
 		}
 
 		public void Close()
 		{
 			isOpen = false;
-			gameObject.GetComponent<Animation>().Play("closing1");
+			animation.Play("closing1");
 		}
 	}
 }

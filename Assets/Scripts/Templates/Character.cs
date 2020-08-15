@@ -72,5 +72,17 @@ namespace KotORVR
 			instance.transform.localPosition = Vector3.zero;
 			instance.transform.localRotation = Quaternion.identity;
 		}
+
+		protected override void Start()
+		{
+			animation.wrapMode = WrapMode.Loop;
+
+			if (animation["cpause1"] != null) {
+				animation.Play("cpause1");
+			}
+			else if (animation["pause1"] != null) {
+				animation.Play("pause1");
+			}
+		}
 	}
 }
